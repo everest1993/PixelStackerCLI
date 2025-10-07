@@ -1,0 +1,11 @@
+opencv-python
+numpy
+rawpy
+Pillow
+astropy
+# sky mask
+torch
+transformers
+huggingface-hub
+# build
+pyinstaller
