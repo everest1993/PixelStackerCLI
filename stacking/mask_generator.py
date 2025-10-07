@@ -49,9 +49,10 @@ def _load_mask2former_cpu(model_id: str) -> None:
 
     # tentativo di caricamento locale
     try:
-        if local_path.exists() and (local_path / "pytorch_model.bin").exists():
+        if local_path.exists() and (local_path / "model.safetensors").exists():
             processor = Mask2FormerImageProcessor.from_pretrained(local_path, local_files_only=True)
             model = Mask2FormerForUniversalSegmentation.from_pretrained(local_path, local_files_only=True)
+            logging.info(f"Modello locale presente in '{local_path}'. Download non necessario.")
     except Exception as e:
         logging.warning(f"Errore nel caricamento locale ({local_path}): {e}. Scarico da Hugging Face...")
         processor = None
