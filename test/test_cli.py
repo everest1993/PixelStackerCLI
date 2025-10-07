@@ -48,7 +48,8 @@ def test_parser_exposure_args_minimal():
 
 # test di binding mode - pipeline
 def test_make_pipeline_returns_expected_types():
-    args_noise = SimpleNamespace(mode="noise", ref_idx=None, sigma_hi=3.0, min_keep=4, min_keep_frac=0.5, iterations=1)
+    args_noise = SimpleNamespace(mode="noise", sigma_low=None, ref_idx=None, sigma_hi=None,
+                                 min_keep=None, min_keep_frac=None, iterations=None)
     p = cli.make_pipeline(args_noise)
     assert isinstance(p, NoiseStackingPipeline)
 

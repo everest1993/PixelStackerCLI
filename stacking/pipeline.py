@@ -8,7 +8,7 @@ from stacking.aligners import AstroAligner
 from stacking.stackers import SigmaClippingNoiseStacker, adaptive_params
 from stacking.mask_generator import detect_sky_mask
 from stacking.utils import to_display_srgb
-from stacking.utils_paths import res_path
+from stacking.utils import res_path
 
 import numpy as np
 import cv2

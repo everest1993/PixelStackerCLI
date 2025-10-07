@@ -1,9 +1,12 @@
 """
-Contiene funzioni di utility necessarie all'allineamento e allo stacking.
+Contiene funzioni di utility necessarie all'allineamento, allo stacking e all'esecuzione.
 """
 
 import cv2
 import numpy as np
+import sys
+
+from pathlib import Path
 
 """
 Funzione per aumentare l'esposizione dell'immagine finale
@@ -79,3 +82,14 @@ def to_gray_f32(img: np.ndarray, normalize: bool = False) -> np.ndarray:
         raise ValueError(f"Formato immagine non supportato: {img.shape}")
     g = g.astype(np.float32)
     return normalize_img(g) if normalize else g
+
+
+"""
+restituisce il percorso assoluto alla cartella o file della risorsa, sia eseguendo il codice da 
+Python direttamente sia da un eseguibile PyInstaller
+"""
+def res_path(rel: str) -> Path:
+    # in bundle PyInstaller -> sys._MEIPASS
+    # altrimenti usa la root del progetto
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+    return (base / rel).resolve()

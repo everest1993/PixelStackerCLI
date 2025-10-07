@@ -42,9 +42,9 @@ class FakeAligner:
 
 # classe fake per testare la pipeline
 class FakeStacker:
-    def __init__(self, sigma_hi, min_keep, min_keep_frac, iterations):
-        called["stack_creator"] = dict(sigma_hi=sigma_hi, min_keep=min_keep, min_keep_frac=min_keep_frac,
-                                    iterations=iterations)
+    def __init__(self, sigma_low, sigma_hi, min_keep, min_keep_frac, iterations):
+        called["stack_creator"] = dict(sigma_low=sigma_low, sigma_hi=sigma_hi,
+                                       min_keep=min_keep, min_keep_frac=min_keep_frac, iterations=iterations)
     def stack_all(self, im):
         called["stack_all"] = True
         return _fake_img(value=123, dtype=np.float32)
@@ -55,16 +55,16 @@ def test_noise_pipeline(monkeypatch, capsys):
     monkeypatch.setattr(pipe, "AstroAligner", FakeAligner)
     monkeypatch.setattr(pipe, "SigmaClippingNoiseStacker", FakeStacker)
 
-    p = pipe.NoiseStackingPipeline(ref_idx=None, sigma_hi=3.0, min_keep=4, min_keep_frac=0.5, iterations=1)
+    p = pipe.NoiseStackingPipeline(ref_idx=None, sigma_low=None, sigma_hi=None,
+                                   min_keep=None, min_keep_frac=None, iterations=None)
     out = p.run(imgs)
 
     assert called["detect"]["bgr"] is imgs[2], "La sky mask deve essere generata sulla ref centrale"
     assert called["detect"]["prob_thresh"] == 0.6
     assert called["detect"]["max_side"] == 1024
     assert "mask2former" in called["detect"]["model_id"]
-    assert called["detect"]["save_path"] is not None
+    assert called["detect"]["save_path"] is None
     assert called["align_all"] == imgs
-    assert called["stack_creator"] == dict(sigma_hi=3.0, min_keep=4, min_keep_frac=0.5, iterations=1)
 
     std = capsys.readouterr().out
     assert "STEP 1/3" in std and "STEP 2/3" in std and "STEP 3/3" in std

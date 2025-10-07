@@ -26,34 +26,14 @@ def _load_mask2former_cpu(model_id: str) -> None:
     if _M2F.get("loaded", False):
         return
 
-    import sys, types, importlib.machinery
-    if "scipy" not in sys.modules:
-        m = types.ModuleType("scipy")
-        m.__version__ = "0.0"
-        m.__path__ = []
-        m.__spec__ = importlib.machinery.ModuleSpec("scipy", loader=None, is_package=True)
-        sys.modules["scipy"] = m
-
     try:
         import torch as torch_mod
-        mm = importlib.import_module("transformers.models.mask2former.modeling_mask2former")
+        import importlib.machinery
+        from transformers import (Mask2FormerImageProcessor, Mask2FormerForUniversalSegmentation)
 
-        class _DummyMask2FormerLoss:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def __call__(self, *args, **kwargs):
-                return {}
-
-        mm.Mask2FormerLoss = _DummyMask2FormerLoss
-
-        from transformers import (
-            Mask2FormerImageProcessor,
-            Mask2FormerForUniversalSegmentation,
-        )
     except ImportError as e:
         raise RuntimeError(
-            "Mask2Former non disponibile. Installa le dipendenze extra (torch, transformers)."
+            "Mask2Former non disponibile."
         ) from e
 
     # definisce il device (CPU) prima di usarlo per il caching
