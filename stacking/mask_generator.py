@@ -41,7 +41,7 @@ def _load_mask2former_cpu(model_id: str) -> None:
 
     # fallback
     local_path = Path(model_id)
-    download_repo_id = "nvidia/mask2former-swin-tiny-ade-semantic"  # repository da scaricare
+    download_repo_id = "facebook/mask2former-swin-tiny-ade-semantic"  # repository da scaricare
 
     # Inizializza a None. Verranno popolati nel caricamento/download
     processor = None
