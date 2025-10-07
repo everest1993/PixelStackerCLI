@@ -7,5 +7,6 @@ astropy
 torch
 transformers
 huggingface-hub
+scipy
 # build
 pyinstaller
