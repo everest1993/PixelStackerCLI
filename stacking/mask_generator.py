@@ -63,31 +63,45 @@ def _load_mask2former_cpu(model_id: str) -> None:
     local_path = Path(model_id)
     download_repo_id = "nvidia/mask2former-swin-tiny-ade-semantic"  # repository da scaricare
 
-    model_source = local_path
-    local_only = True
+    # Inizializza a None. Verranno popolati nel caricamento/download
+    processor = None
+    model = None
 
-    if not (local_path.exists() and (local_path / "pytorch_model.bin").exists()):
-        # modello non trovato localmente
+    if local_path.exists() and (local_path / "pytorch_model.bin").exists():
+        # modello trovato localmente, tenta il caricamento
+        try:
+            processor = Mask2FormerImageProcessor.from_pretrained(
+                local_path,
+                local_files_only=True
+            )
+            model = Mask2FormerForUniversalSegmentation.from_pretrained(
+                local_path,
+                local_files_only=True
+            )
+        except Exception as e:
+            # Fallback se i file locali sono presenti ma corrotti o non caricabili
+            logging.warning(f"Errore nel caricamento locale ({local_path}): {e}. Tentativo di scaricare da Hugging Face...")
+            processor = None # Forza il blocco successivo a scaricare
+
+    if model is None:
+        # modello non trovato localmente, o caricamento locale fallito -> scarica da remoto
         print(f"Modello non trovato in {local_path}, scarico da Hugging Face come {download_repo_id}...")
 
         # scarica l'IMageProcessor e il modello e li salva
-        processor = Mask2FormerImageProcessor.from_pretrained(download_repo_id)
-        model = Mask2FormerForUniversalSegmentation.from_pretrained(download_repo_id)
+        # Uso 'force_download=True' per superare eventuali errori di cache corrotta (come visto nell'errore Index/OS)
+        processor = Mask2FormerImageProcessor.from_pretrained(
+            download_repo_id,
+            force_download=True
+        )
+        model = Mask2FormerForUniversalSegmentation.from_pretrained(
+            download_repo_id,
+            force_download=True
+        )
 
         processor.save_pretrained(local_path)
         model.save_pretrained(local_path)
 
         # il modello è salvato localmente -> caching
-    else:
-        # modello trovato localmente
-        processor = Mask2FormerImageProcessor.from_pretrained(
-            model_source,
-            local_files_only=local_only
-        )
-        model = Mask2FormerForUniversalSegmentation.from_pretrained(
-            model_source,
-            local_files_only=local_only
-        )
 
 
     _M2F.update(
