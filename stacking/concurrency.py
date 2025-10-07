@@ -16,6 +16,7 @@ from typing import Callable, Any, Iterable, Optional, Tuple, Iterator
 import logging
 import numpy as np
 import os
+import multiprocessing as mp
 
 """
 Funzione che viene passata come initializer al ProcessPoolExecutor in process_map, prima di eseguire i job.
@@ -60,7 +61,9 @@ def process_map_workers(workers: Iterable[Callable[[], Any]],
         except Exception:
             max_workers = 1
             logging.info(f"Concurrency unavailable: {max_workers} worker.")
-    with ProcessPoolExecutor(max_workers=max_workers, initializer=worker_init) as ex:
+
+    ctx = mp.get_context("spawn")
+    with ProcessPoolExecutor(max_workers=max_workers, initializer=worker_init, mp_context=ctx) as ex:
         """
         Ogni worker esegue la funzione target sugli argomenti passati
         
@@ -71,7 +74,7 @@ def process_map_workers(workers: Iterable[Callable[[], Any]],
         yield res fa di process_map un generatore: passa uno alla volta i risultati al chiamante, senza accumularli in 
         una lista.
         """
-        for res in ex.map(_exec_worker, workers):
+        for res in ex.map(_exec_worker, list(workers)):
             yield res
 
 

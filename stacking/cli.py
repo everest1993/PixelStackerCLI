@@ -7,11 +7,9 @@ terminale, non se importato come modulo in un altro programma.
 """
 import logging
 import argparse
-import cv2
 import os
 
 from pathlib import Path
-from stacking.io import read_imgs
 from stacking.pipeline import NoiseStackingPipeline
 from stacking.pipeline import FocusPipeline
 from stacking.pipeline import ExposurePipeline
@@ -94,6 +92,10 @@ def make_pipeline(args):
 
 
 def main():
+    # importa librerie pesanti solo dopo che l'ambiente runtime è stato impostato
+    import cv2
+    from stacking.io import read_imgs
+
     parser = build_parser()
     args = parser.parse_args()
 
@@ -123,6 +125,10 @@ Blocco di codice che serve per garantire che i worker dei processi si avviino in
 """
 if __name__ == "__main__":  # entrypoint
     import multiprocessing as mp
+
+    # imposta variabili d'ambiente prima degli import pesanti
+    _set_runtime_env()
+
     mp.freeze_support()
     try:
         """
@@ -133,5 +139,4 @@ if __name__ == "__main__":  # entrypoint
     except RuntimeError:
         pass
 
-    _set_runtime_env()
     main()
