@@ -34,13 +34,10 @@ LOGICA ATTUALE:
 class NoiseStackingPipeline(BasePipeline):
 
     def __init__(self, ref_idx: Optional[int] = None,
-                sigma_low: float = None, sigma_hi: float = None,
-                 min_keep: int = None, min_keep_frac = None, iterations: int = None) -> None:
+                sigma_low: float = None, sigma_hi: float = None, iterations: int = None) -> None:
         self.ref_idx = ref_idx
         self.sigma_low = sigma_low
         self.sigma_hi = sigma_hi
-        self.min_keep = min_keep
-        self.min_keep_frac = min_keep_frac
         self.iterations = iterations
 
     def run(self, images: List[np.ndarray]) -> np.ndarray:
@@ -50,21 +47,16 @@ class NoiseStackingPipeline(BasePipeline):
 
         n = len(images)
         # calcola parametri sigma clipping se non definiti
-        ad_sigma_low, ad_sigma_hi, ad_min_keep, ad_min_keep_frac = adaptive_params(n)
+        ad_sigma_low, ad_sigma_hi = adaptive_params(n)
 
         # override da costruttore
         self.sigma_low = self.sigma_low if self.sigma_low is not None else ad_sigma_low
         self.sigma_hi = self.sigma_hi if self.sigma_hi is not None else ad_sigma_hi
-        self.min_keep = self.min_keep if self.min_keep is not None else ad_min_keep
-        self.min_keep_frac = self.min_keep_frac if self.min_keep_frac is not None else ad_min_keep_frac
 
         if self.iterations is None:
             self.iterations = 1 if n < 4 else 2
 
         if n < 4: logging.warning("N < 4: sigma-clipping disattivato, uso media/mediana diretta.")
-
-        logging.info(f"Adaptive parameters: sigma_low={self.sigma_low}, sigma_hi={self.sigma_hi}, "
-            f"min_keep={self.min_keep}, min_keep_frac={self.min_keep_frac}, iterations={self.iterations}")
 
         # immagine di reference
         ref_img_index = self.ref_idx if self.ref_idx is not None else (len(images) // 2)
@@ -98,7 +90,6 @@ class NoiseStackingPipeline(BasePipeline):
         # 3) Noise stacking
         stacker = SigmaClippingNoiseStacker(sigma_low=self.sigma_low,
                                             sigma_hi=self.sigma_hi,
-                                            min_keep=self.min_keep, min_keep_frac=self.min_keep_frac,
                                             iterations=self.iterations)
         logging.info(f"Stacking images using Sigma Clipping ({self.iterations} iterations)...")
         stacked = stacker.stack_all(aligned)  # valori in float32

@@ -1,6 +1,7 @@
 """
 Contiene funzioni per generare una maschera del cielo su cui applicare il noise stacking
 """
+
 from pathlib import Path
 from typing import Any, Dict, Optional
 from PIL import Image

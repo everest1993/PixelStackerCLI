@@ -1,15 +1,14 @@
 """
 Contiene la logica per eseguire noise stacking attraverso il metodo Sigma Clipping (rimuove oggetti mobili)
 """
+
 from typing import List
 from abc import ABC, abstractmethod
 from stacking.concurrency import AstroStackerWorker, process_map_workers
 from astropy.stats import sigma_clip, mad_std
-from functools import partial
 
 import numpy as np
 import logging
-import math
 
 """
 In un blocco (tile) di immagini sovrapposte dello stesso punto del cielo possono essere presenti:
@@ -27,41 +26,33 @@ def sigma_clip_tile(
     tile_stack: np.ndarray,
     sigma_low: float,
     sigma_hi: float,
-    min_keep: int,
-    min_keep_frac: float,
-    iterations: int) -> np.ndarray:
+    iterations: int
+) -> np.ndarray:
 
     arr = tile_stack.astype(np.float32)
-    n = arr.shape[0]
 
-    # calcolo sicuro del min_keep_abs
-    min_keep_abs = max(min_keep, int(np.ceil(min_keep_frac * n)))
-    min_keep_abs = min(max(1, min_keep_abs), n)  # cap tra 1 e n
-
-    # caso N piccolo o clipping disattivato: media
+    # caso semplice: nessun clipping richiesto
     if sigma_low is None and sigma_hi is None:
         return np.mean(arr, axis=0, dtype=np.float32)
 
-    # sigma-clipping con lati eventualmente disattivati (None)
+    # sigma clipping usando Astropy
     masked = sigma_clip(
         data=arr,
         sigma_lower=sigma_low,
         sigma_upper=sigma_hi,
         maxiters=iterations,
         cenfunc=np.median,
-        stdfunc=partial(mad_std, ignore_nan=True),
+        stdfunc=mad_std,
         axis=0,
-        grow=False
+        grow=True
     )
 
-    # media dei valori non mascherati
-    mean_clipped = masked.mean(axis=0).filled(0.0).astype(np.float32)
-    count_kept = (~np.ma.getmaskarray(masked)).sum(axis=0)
-
-    # fallback se non ci sono abbastanza valori validi
-    med_all = np.median(arr, axis=0).astype(np.float32)
-    use_fallback = (count_kept < min_keep_abs)
-    out = np.where(use_fallback, med_all, mean_clipped)
+    # media sui valori non mascherati (validi)
+    mean_clipped = masked.mean(axis=0)
+    # mediana sui tutti i pixel
+    med_all = np.median(arr, axis=0)
+    # ricostruzione dell'immagine coerente
+    out = mean_clipped.filled(med_all).astype(np.float32)
 
     return out
 
@@ -75,12 +66,9 @@ class BaseStacker(ABC):
 
 # stacker concreto che utilizza la funzione sigma clipping per ridurre il rumore in una lista di foto
 class SigmaClippingNoiseStacker(BaseStacker):
-    def __init__(self, sigma_low: float, sigma_hi: float, min_keep: int, min_keep_frac: float,
-                 iterations: int, tile: int = 512):
+    def __init__(self, sigma_low: float, sigma_hi: float, iterations: int, tile: int = 512):
         self.sigma_low = sigma_low
         self.sigma_hi = sigma_hi  # intensità del filtro per gli outliers
-        self.min_keep = min_keep    # minimo di campioni buoni
-        self.min_keep_frac = min_keep_frac
         self.iterations = iterations
         self.tile = tile    # dimensione del tile (quadrato)
 
@@ -110,7 +98,6 @@ class SigmaClippingNoiseStacker(BaseStacker):
                         tile_stack=tile_stack,
                         sigma_low=self.sigma_low,
                         sigma_hi=self.sigma_hi,
-                        min_keep=self.min_keep, min_keep_frac=self.min_keep_frac,
                         iterations=self.iterations
                     )
                 )
@@ -122,44 +109,16 @@ class SigmaClippingNoiseStacker(BaseStacker):
         return out.astype(np.float32)
 
 
-# adatta i parametri del sigma clipping al numero di immagini in input
+"""
+Restituisce parametri sigma-clipping adattivi al numero di immagini n in ingresso (sigma_low, sigma_hi)
+"""
 def adaptive_params(n: int):
-    # n < 4: nessun clipping, media
-    if n < 4:
-        sigma_low = None
-        sigma_hi = None
-        min_keep_frac = 1.0
-        min_keep = n
-        return sigma_low, sigma_hi, min_keep, min_keep_frac
-
-    # 4 < n < 8: transizione lineare morbida
-    if 4 <= n <= 8:
-        t = (n - 4) / 4.0
-        sigma_hi = 7.5 - t * (7.5 - 6.5)
-        sigma_low = 4.5 - t * (4.5 - 3.6)
-        min_keep_frac = 0.70 - t * (0.70 - 0.60)
-        min_keep = max(4, int(np.ceil(min_keep_frac * n)))
-        return sigma_low, sigma_hi, min_keep, min_keep_frac
-
-    # 9 < n < 19: curva log per adattarsi a più frame
-    if 9 <= n < 20:
-        sigma_hi = 6.5 - 0.7 * math.log2(n / 8)
-        sigma_low = 3.6 - 0.3 * math.log2(n / 8)
-        min_keep_frac = 0.60 - 0.10 * math.log2(n / 8)
-
-    # n ≥ 20: preset ottimizzato per molti frame
-    else:  # n >= 20
-        sigma_hi = 4.9
-        sigma_low = 3.1
-        min_keep_frac = 0.54
-
-    # clamp
-    sigma_hi = min(max(sigma_hi, 4.5), 7.5)
-    sigma_low = min(max(sigma_low, 3.0), 4.5)
-    min_keep_frac = min(max(min_keep_frac, 0.50), 0.70)
-    min_keep = max(4, int(np.ceil(min_keep_frac * n)))
-
-    return sigma_low, sigma_hi, min_keep, min_keep_frac
+    if n < 5:
+        return None, None   # media
+    if 5 <= n <= 20:
+        return np.inf, 5.0
+    else:
+        return np.inf, 10.0
 
 
 class FocusStacker(BaseStacker):

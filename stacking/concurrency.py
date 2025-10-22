@@ -101,22 +101,19 @@ class AstroAlignerWorker(Worker):
 # classe concreta per implementare il parallelismo del processo di stacking
 class AstroStackerWorker(Worker):
     def __init__(self, y1: int, y2: int, x1: int, x2: int,
-                 tile_stack: np.ndarray, sigma_low: float, sigma_hi: float,
-                 min_keep: int, min_keep_frac: float, iterations: int):
+                 tile_stack: np.ndarray, sigma_low: float, sigma_hi: float, iterations: int):
         self.y1 = y1
         self.y2 = y2
         self.x1 = x1
         self.x2 = x2
+
         self.tile_stack = tile_stack
         self.sigma_low = sigma_low
         self.sigma_hi = sigma_hi
 
-        self.min_keep = min_keep
-        self.min_keep_frac = min_keep_frac
         self.iterations = iterations
 
     def __call__(self) -> Tuple[Tuple[int, int, int, int], np.ndarray]:
         from .stackers import sigma_clip_tile   # lazy import
-        out_tile = sigma_clip_tile(self.tile_stack, self.sigma_low, self.sigma_hi,
-                                   self.min_keep, self.min_keep_frac, self.iterations)
+        out_tile = sigma_clip_tile(self.tile_stack, self.sigma_low, self.sigma_hi, self.iterations)
         return (self.y1, self.y2, self.x1, self.x2), out_tile

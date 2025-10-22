@@ -58,8 +58,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_noise.add_argument("--ref-idx", type=int, default=None, help="reference img idx (default: central)")
     p_noise.add_argument("--sigma-low", type=float, default=None, help="lower sigma clipping value")
     p_noise.add_argument("--sigma-hi", type=float, default=None, help="upper sigma clipping value")
-    p_noise.add_argument("--min-keep", type=int, default=None, help="min valid values (absolute)")
-    p_noise.add_argument("--min-keep-frac", type=float, default=None, help="min valid values (fraction)")
     p_noise.add_argument("--iterations", type=int, default=None, help="sigma clipping iterations")
 
     # focus pipeline
@@ -79,8 +77,6 @@ def make_pipeline(args):
             ref_idx=args.ref_idx,
             sigma_low=args.sigma_low,
             sigma_hi=args.sigma_hi,
-            min_keep=args.min_keep,
-            min_keep_frac=args.min_keep_frac,
             iterations=args.iterations
         )
     elif args.mode == "focus":
