@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pixelstacker-cli"
+version = "0.1.0"
+description = "CLI for PixelStacker"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+# QUI crei il comando CLI
+[project.scripts]
+pixelstacker-cli = "stacking.main:main"
