@@ -40,6 +40,8 @@ transformers
 huggingface-hub
 ```
 
+- On Windows, the latest Microsoft Visual C++ Redistributable for Visual Studio is required.
+
 ## Installation
 
 Clone the repository and install dependencies:

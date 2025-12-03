@@ -8,3 +8,4 @@ astropy
 torch
 transformers
 huggingface-hub
+scipy
